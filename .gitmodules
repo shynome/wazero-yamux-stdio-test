@@ -1,0 +1,3 @@
+[submodule "yamux"]
+	path = yamux
+	url = https://github.com/hashicorp/yamux.git
