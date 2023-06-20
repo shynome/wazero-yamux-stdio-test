@@ -16,8 +16,8 @@ import (
 )
 
 func main() {
-	var runNative bool
-	flag.BoolVar(&runNative, "native", false, "run native")
+	var callSystemExec bool
+	flag.BoolVar(&callSystemExec, "sys", false, "use system exec")
 	flag.Parse()
 
 	cmdIn, cmdWriter := io.Pipe()
@@ -28,7 +28,7 @@ func main() {
 		PipeWriter: cmdWriter,
 	}
 
-	if runNative { // run native
+	if callSystemExec { // run native
 		cmd := exec.Command("go", "run", "./w")
 		cmd.Stdin = cmdIn
 		cmd.Stdout = cmdOut
