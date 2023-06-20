@@ -18,6 +18,8 @@ import (
 func main() {
 	var callSystemExec bool
 	flag.BoolVar(&callSystemExec, "sys", false, "use system exec")
+	var useWasmer bool
+	flag.BoolVar(&useWasmer, "wasmer", false, "use wasm3 call")
 	flag.Parse()
 
 	cmdIn, cmdWriter := io.Pipe()
@@ -35,17 +37,30 @@ func main() {
 		cmd.Stderr = os.Stderr
 		try.To(cmd.Start())
 		defer cmd.Wait()
-	} else { // run wasm
+	} else if useWasmer {
+		// build wasip1
+		build := exec.Command("gotip", "build", "-o", "w.wasm", "./w")
+		build.Env = append(os.Environ(), "GOOS=wasip1", "GOARCH=wasm")
+		build.Stderr = os.Stderr
+		try.To(build.Run())
+
+		cmd := exec.Command("wasmer", "run", "w.wasm")
+		cmd.Stdin = cmdIn
+		cmd.Stdout = cmdOut
+		cmd.Stderr = os.Stderr
+		try.To(cmd.Start())
+		defer cmd.Wait()
+	} else { // run gojs wasm
+		// build gojs wasm
+		build := exec.Command("go", "build", "-o", "w.wasm", "./w")
+		build.Env = append(os.Environ(), "GOOS=js", "GOARCH=wasm")
+		build.Stderr = os.Stderr
+		try.To(build.Run())
+
 		ctx := context.Background()
 		rtc := wazero.NewRuntimeConfigInterpreter()
 		rt := wazero.NewRuntimeWithConfig(ctx, rtc)
 		gojs.MustInstantiate(ctx, rt)
-
-		// build wasm
-		cmd := exec.Command("go", "build", "-o", "w.wasm", "./w")
-		cmd.Env = append(os.Environ(), "GOOS=js", "GOARCH=wasm")
-		cmd.Stderr = os.Stderr
-		try.To(cmd.Run())
 
 		b := try.To1(os.ReadFile("./w.wasm"))
 		cm := try.To1(rt.CompileModule(ctx, b))
