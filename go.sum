@@ -1,0 +1,4 @@
+github.com/lainio/err2 v0.9.1 h1:jbqO2TVyQXnruI1w2/dI8NdPjzq+7+ApCFe4uSjLjZ4=
+github.com/lainio/err2 v0.9.1/go.mod h1:glTVV2qNFbBy6WzZFDP2G5BqMiZI58cudp588cEgCuM=
+github.com/tetratelabs/wazero v1.2.1 h1:J4X2hrGzJvt+wqltuvcSjHQ7ujQxA9gb6PeMs4qlUWs=
+github.com/tetratelabs/wazero v1.2.1/go.mod h1:wYx2gNRg8/WihJfSDxA1TIL8H+GkfLYm+bIfbblu9VQ=
