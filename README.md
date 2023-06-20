@@ -14,6 +14,8 @@ thanks for your seen
 go run . -sys
 # you will only see ping, and the terminal is hang up
 go run .
+#  wasm call by wasmer also have the same problem, it seem golang wasm problem
+go run . -wasmer
 ```
 
 ## Debug
