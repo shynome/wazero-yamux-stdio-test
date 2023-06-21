@@ -16,6 +16,8 @@ go run . -sys
 go run .
 #  wasm call by wasmer also have the same problem, it seem golang wasm problem
 go run . -wasmer
+# gojs call is working
+go run . -gojs
 ```
 
 ## Debug

@@ -4,10 +4,12 @@ import (
 	"context"
 	"crypto/rand"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"os/exec"
+	"runtime"
 
 	"github.com/hashicorp/yamux"
 	"github.com/lainio/err2/try"
@@ -20,6 +22,8 @@ func main() {
 	flag.BoolVar(&callSystemExec, "sys", false, "use system exec")
 	var useWasmer bool
 	flag.BoolVar(&useWasmer, "wasmer", false, "use wasm3 call")
+	var useGoJS bool
+	flag.BoolVar(&useGoJS, "gojs", false, "use gojs call")
 	flag.Parse()
 
 	cmdIn, cmdWriter := io.Pipe()
@@ -45,6 +49,15 @@ func main() {
 		try.To(build.Run())
 
 		cmd := exec.Command("wasmer", "run", "w.wasm")
+		cmd.Stdin = cmdIn
+		cmd.Stdout = cmdOut
+		cmd.Stderr = os.Stderr
+		try.To(cmd.Start())
+		defer cmd.Wait()
+	} else if useGoJS {
+		goexec := fmt.Sprintf("%s/misc/wasm/go_js_wasm_exec", runtime.GOROOT())
+		cmd := exec.Command("go", "run", "-exec", goexec, "./w")
+		cmd.Env = append(os.Environ(), "GOOS=js", "GOARCH=wasm")
 		cmd.Stdin = cmdIn
 		cmd.Stdout = cmdOut
 		cmd.Stderr = os.Stderr
