@@ -55,8 +55,8 @@ func main() {
 		try.To(cmd.Start())
 		defer cmd.Wait()
 	} else if useGoJS {
-		goexec := fmt.Sprintf("%s/misc/wasm/go_js_wasm_exec", runtime.GOROOT())
-		cmd := exec.Command("go", "run", "-exec", goexec, "./w")
+		gojsExec := fmt.Sprintf("%s/misc/wasm/go_js_wasm_exec", runtime.GOROOT())
+		cmd := exec.Command("go", "run", "-exec", gojsExec, "./w")
 		cmd.Env = append(os.Environ(), "GOOS=js", "GOARCH=wasm")
 		cmd.Stdin = cmdIn
 		cmd.Stdout = cmdOut
