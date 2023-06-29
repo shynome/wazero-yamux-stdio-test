@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/yamux"
 	"github.com/lainio/err2/try"
 	"github.com/tetratelabs/wazero"
-	"github.com/tetratelabs/wazero/experimental/gojs"
+	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 )
 
 func main() {
@@ -26,12 +26,12 @@ func main() {
 	flag.BoolVar(&useGoJS, "gojs", false, "use gojs call")
 	flag.Parse()
 
-	cmdIn, cmdWriter := io.Pipe()
-	cmdReader, cmdOut := io.Pipe()
+	cmdIn, cmdWriter := try.To2(os.Pipe())
+	cmdReader, cmdOut := try.To2(os.Pipe())
 
 	stdio := Stdio{
-		PipeReader: cmdReader,
-		PipeWriter: cmdWriter,
+		Reader: cmdReader,
+		Writer: cmdWriter,
 	}
 
 	if callSystemExec { // run native
@@ -63,17 +63,17 @@ func main() {
 		cmd.Stderr = os.Stderr
 		try.To(cmd.Start())
 		defer cmd.Wait()
-	} else { // run gojs wasm
-		// build gojs wasm
-		build := exec.Command("go", "build", "-o", "w.wasm", "./w")
-		build.Env = append(os.Environ(), "GOOS=js", "GOARCH=wasm")
+	} else { // run gotip wasm
+		// build gotip wasm
+		build := exec.Command("gotip", "build", "-o", "w.wasm", "./w")
+		build.Env = append(os.Environ(), "GOOS=wasip1", "GOARCH=wasm")
 		build.Stderr = os.Stderr
 		try.To(build.Run())
 
 		ctx := context.Background()
 		rtc := wazero.NewRuntimeConfigInterpreter()
 		rt := wazero.NewRuntimeWithConfig(ctx, rtc)
-		gojs.MustInstantiate(ctx, rt)
+		wasi_snapshot_preview1.MustInstantiate(ctx, rt)
 
 		b := try.To1(os.ReadFile("./w.wasm"))
 		cm := try.To1(rt.CompileModule(ctx, b))
@@ -91,8 +91,7 @@ func main() {
 		go func() {
 			defer close(w)
 			log.Println("run")
-			mcc := gojs.NewConfig(mc)
-			try.To(gojs.Run(context.Background(), rt, cm, mcc))
+			rt.InstantiateModule(ctx, cm, mc)
 		}()
 	}
 
@@ -106,32 +105,32 @@ func main() {
 }
 
 type Stdio struct {
-	*io.PipeReader
-	*io.PipeWriter
+	io.Reader
+	io.Writer
 }
 
 var _ io.ReadWriteCloser = (*Stdio)(nil)
 
 func (o Stdio) Write(p []byte) (n int, err error) {
 	log.Println("write", p)
-	n, err = o.PipeWriter.Write(p)
+	n, err = o.Writer.Write(p)
 	log.Println("wrote", n, err)
 	return
 }
 
 func (o Stdio) Read(p []byte) (n int, err error) {
 	log.Println("read")
-	n, err = o.PipeReader.Read(p)
+	n, err = o.Reader.Read(p)
 	log.Println("readed", n, err, p[:n])
 	return
 }
 
 func (o Stdio) Close() (err error) {
-	if err = o.PipeReader.Close(); err != nil {
-		return
+	if closer, ok := o.Reader.(io.Closer); ok {
+		closer.Close()
 	}
-	if err = o.PipeWriter.Close(); err != nil {
-		return
+	if closer, ok := o.Writer.(io.Closer); ok {
+		closer.Close()
 	}
 	return nil
 }
